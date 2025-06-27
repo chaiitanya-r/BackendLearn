@@ -1,0 +1,7 @@
+connecting and communicating with database can raise problems so,
+always use try-catch to setup and handle database.
+
+`DATABASE IS ALWAYS IN ANOTHER CONTINENT`
+means it takes time to communicate with database so,
+always use async-await.
+

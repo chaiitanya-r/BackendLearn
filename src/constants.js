@@ -1,1 +1,1 @@
-ÿþ
+export const DB_NAME = 'VideoTube'; // Name of the MongoDB database
