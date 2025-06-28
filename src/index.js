@@ -1,5 +1,3 @@
-// require('dotenv').config({ path: './.env' }); // Load environment variables from .env file
-
 // Importing the necessary modules 
 
 import dotenv from 'dotenv'; // Import dotenv to load environment variables
@@ -11,6 +9,16 @@ dotenv.config({ path: './.env' }); // configure dotenv to load environment varia
 
 connectToDatabase() // Call the function to connect to MongoDB
 
+
+    .then(() => { // If connection is successful, start the Express server
+        app.listen(process.env.PORT || 3000, () => {
+            console.log(`Server is running on port ${process.env.PORT || 3000}`); // Log the server port
+        })
+    })
+    .catch((error => { // If connection fails, log the error
+        console.error('Error connecting to MongoDB:', error); // Log the error if connection fails
+        throw error; // Rethrow the error for further handling
+    }))
 
 
 

@@ -5,3 +5,10 @@ always use try-catch to setup and handle database.
 means it takes time to communicate with database so,
 always use async-await.
 
+
+cors = cross origin resource sharing.
+to use middleware or any configuration setting use, `app.use()`.
+
+wrap-up the code which is to be used repeatedly in utils,
+ex: try-catch block, errors handling, promises
+make it generalize
