@@ -6,7 +6,7 @@ class apiError extends Error {
         message = "Something went wrong", // Default error message
         statusCode, // Default status code
         errors = [], // Default error array
-        statck = "" // Default stack trace
+        stack = "" // Default stack trace
     ) {
         super(message) // Call the parent constructor with the error message
         this.statusCode = statusCode // Assign status code to the instance
@@ -15,8 +15,8 @@ class apiError extends Error {
         this.success = false // Set success to false
         this.errors = errors // Assign errors to the instance
 
-        if (statck) {
-            this.stack = statck // Assign stack trace if provided
+        if (stack) {
+            this.stack = stack // Assign stack trace if provided
         } else {
             Error.captureStackTrace(this, this.constructor) // Capture the stack trace if not provided
         }

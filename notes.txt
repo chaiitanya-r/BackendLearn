@@ -12,3 +12,6 @@ to use middleware or any configuration setting use, `app.use()`.
 wrap-up the code which is to be used repeatedly in utils,
 ex: try-catch block, errors handling, promises
 make it generalize
+
+
+Middleware is like, 'Ja rahe ho kahi?, toh jaate samay mujhse milte jaana'
