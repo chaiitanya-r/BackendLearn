@@ -2,8 +2,8 @@
 
 import dotenv from 'dotenv'; // Import dotenv to load environment variables
 import mongoose from 'mongoose';
-import { DB_NAME } from './constants.js';
 import connectToDatabase from './db/index.js'; // Import the database connection function
+import app from './app.js';
 
 dotenv.config({ path: './.env' }); // configure dotenv to load environment variables from .env file
 

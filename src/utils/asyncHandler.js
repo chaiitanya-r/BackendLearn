@@ -1,7 +1,7 @@
 // A wrapper function to handle asynchronous operations in Express.js (PROMISES)
 const asyncHandler = (requestHandler) => { // Function that takes a request handler as an argument
 
-    (req, res, next) => { // Returns a new function that takes req, res, and next as parameters
+    return (req, res, next) => { // Returns a new function that takes req, res, and next as parameters
 
         Promise.resolve(requestHandler(req, res, next)) // Wrap the request handler in a Promise to handle asynchronous operations
             .catch((err) => next(err)); // Execute the request handler and catch any errors
