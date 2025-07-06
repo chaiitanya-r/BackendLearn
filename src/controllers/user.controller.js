@@ -17,7 +17,8 @@ const registerUser = asyncHandler(async (req, res) => {
     // 9. return response with user data
 
     const { username, email, fullname, password } = req.body; // Extract user data from request body
-    console.log("Registering user:", { username, email, fullname, password }); // Log the user data for debugging
+    // console.log(req.body);
+    // console.log("Registering user:", { username, email, fullname, password }); // Log the user data for debugging
 
     // validate user data
     if ([username, email, fullname, password].some((field) => field?.trim() === "")) { // Check if any field is empty
@@ -36,9 +37,17 @@ const registerUser = asyncHandler(async (req, res) => {
         throw new apiError("User already exists with this email or username", 409);
     }
 
+    // console.log(req.files);
+
     // check for images
     const avatarLocalPath = req.files?.avatar[0]?.path;
-    const coverImageLocalPath = req.files?.coverImage[0]?.path;
+    // const coverImageLocalPath = req.files?.coverImage[0]?.path;
+
+    let coverImageLocalPath;
+    if (req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0) { // Check if request is there and coverImage is an array with at least one file
+        coverImageLocalPath = req.files.coverImage[0].path; // Get cover image local path if it exists
+    }
+
     if (!avatarLocalPath) {
         throw new apiError("Avatar image is required", 400);
     }
