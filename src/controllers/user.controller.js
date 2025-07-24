@@ -4,6 +4,22 @@ import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { apiResponse } from "../utils/apiResponse.js";
 
+const generateAccessAndRefreshTokens = async (userId) => { // Function to generate access and refresh tokens for a user
+    // This function takes a userId, finds the user in the database, and generates tokens
+    try {
+        const user = await User.findById(userId)
+        const accessToken = user.generateAccessToken(); // Generate access token for the user
+        const refreshToken = user.generateRefreshToken(); // Generate refresh token for the user
+
+        user.refreshToken = refreshToken; // Store the refresh token in the user document
+        await user.save({ validateBeforeSave: false }); // Save the user document to the database
+
+        return { accessToken, refreshToken }; // Return the generated tokens
+    } catch (error) {
+        throw new apiError("Something went wrong while generating access and refresh tokens", 500);
+    }
+}
+
 const registerUser = asyncHandler(async (req, res) => {
     // Steps to register a user
     // 1. get user data from request body
@@ -82,4 +98,76 @@ const registerUser = asyncHandler(async (req, res) => {
     )
 })
 
-export { registerUser };
+const loginUser = asyncHandler(async (req, res) => {
+    // Steps to login a user
+    // 1. get user data from request body
+    // 2. validate user data
+    // 3. check if user exists by email or username
+    // 4. check if password is correct
+    // 5. generate access token and refresh token
+    // 6. send cookies with tokens
+
+    const { email, username, password } = req.body; // Extract user data from request body
+
+    if (!(email || username)) { // Check if either email or username is provided
+        throw new apiError("Email or username is required", 400);
+    }
+
+    const user = await User.findOne({ // Check if user exists by email or username
+        $or: [{ email }, { username }]
+    })
+
+    if (!user) { // If user does not exist, throw an error
+        throw new apiError("User not found", 404);
+    }
+
+    const isPasswordValid = await user.isPasswordCorrect(password); // Check if the provided password is correct
+
+    if (!isPasswordValid) { // If password is incorrect, throw an error
+        throw new apiError("Invalid password", 401);
+    }
+
+    const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id) // Generate access and refresh tokens for the user
+
+    const loggedInUser = await User.findById(user._id).select("-password -refreshToken"); // Fetch the logged-in user without password and refresh token
+
+    const cookieOptions = { // Set cookie options for secure cookies
+        httpOnly: true, // Cookie is not accessible via JavaScript
+        secure: true, // Cookie is only sent over HTTPS
+    }
+
+    return res.status(200)
+        .cookie("accessToken", accessToken, cookieOptions) // Send access token as a cookie
+        .cookie("refreshToken", refreshToken, cookieOptions) // Send refresh token as a cookie
+        .json(new apiResponse(200, {
+            user: loggedInUser, // Return the logged-in user data
+            accessToken, // Include access token in the response
+            refreshToken // Include refresh token in the response
+        }, "User logged in successfully")) // Return a success response
+})
+
+const logoutUser = asyncHandler(async (req, res) => {
+    // Steps to logout a user
+    // 1. check if user is authenticated
+    // 2. clear refresh token from user document
+    // 3. clear cookies for access token and refresh token
+    // 4. return success response
+
+    await User.findByIdAndUpdate( // Update the user document to clear the refresh token
+        req.user._id, // Use the user ID from the request object
+        {
+            $set: { refreshToken: undefined } // Clear the refresh token field
+        }, { new: true } // options to return the updated document
+
+    )
+    const cookieOptions = { // Set cookie options for secure cookies
+        httpOnly: true, // Cookie is not accessible via JavaScript
+        secure: true, // Cookie is only sent over HTTPS
+    }
+    return res.status(200)
+        .clearCookie("accessToken", cookieOptions) // Clear access token cookie
+        .clearCookie("refreshToken", cookieOptions) // Clear refresh token cookie
+        .json(new apiResponse(200, null, "User logged out successfully")) // Return a success response
+})
+
+export { registerUser, loginUser, logoutUser, };
