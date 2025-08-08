@@ -21,7 +21,7 @@ const generateAccessAndRefreshTokens = async (userId) => { // Function to genera
     }
 }
 
-const registerUser = asyncHandler(async (req, res) => {
+const registerUser = asyncHandler(async (req, res) => { // Function to register a user
     // Steps to register a user
     // 1. get user data from request body
     // 2. validate user data
@@ -99,7 +99,7 @@ const registerUser = asyncHandler(async (req, res) => {
     )
 })
 
-const loginUser = asyncHandler(async (req, res) => {
+const loginUser = asyncHandler(async (req, res) => { // Function to login a user
     // Steps to login a user
     // 1. get user data from request body
     // 2. validate user data
@@ -147,7 +147,7 @@ const loginUser = asyncHandler(async (req, res) => {
         }, "User logged in successfully")) // Return a success response
 })
 
-const logoutUser = asyncHandler(async (req, res) => {
+const logoutUser = asyncHandler(async (req, res) => { // Function to logout a user
     // Steps to logout a user
     // 1. check if user is authenticated
     // 2. clear refresh token from user document
@@ -171,7 +171,7 @@ const logoutUser = asyncHandler(async (req, res) => {
         .json(new apiResponse(200, null, "User logged out successfully")) // Return a success response
 })
 
-const refreshAccessToken = asyncHandler(async (req, res) => {
+const refreshAccessToken = asyncHandler(async (req, res) => { // Function to refresh access token
     // Steps to refresh access token
     // 1. check if refresh token is present in cookies
     // 2. verify the refresh token
@@ -213,7 +213,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     }
 })
 
-const changeCurrentPassword = asyncHandler(async (res, req) => {
+const changeCurrentPassword = asyncHandler(async (res, req) => { // Function to change current password
     // Steps to change current password
     // 1. get current password, new password, confirm password from request body
     // 2. check if user is logged in
@@ -248,12 +248,12 @@ const changeCurrentPassword = asyncHandler(async (res, req) => {
         .json(new apiResponse(200, null, 'Password changed successfully'))
 })
 
-const getCurrentUser = asyncHandler(async (req, res) => {
+const getCurrentUser = asyncHandler(async (req, res) => { // Function to get current user
     res.status(200)
         .json(new apiResponse(200, req.user, "User fetched successfully"))
 })
 
-const updateUserProfile = asyncHandler(async (req, res) => {
+const updateUserProfile = asyncHandler(async (req, res) => { // Function to update user profile
     // we will only let user to update their fullname, email
 
     // Steps to update user profile
@@ -282,7 +282,7 @@ const updateUserProfile = asyncHandler(async (req, res) => {
         .json(new apiResponse(200, user, "User profile updated successfully"))
 })
 
-const updateUserAvatar = asyncHandler(async (req, res) => {
+const updateUserAvatar = asyncHandler(async (req, res) => { // Function to update user avatar
     // Steps to update user avatar
     // 1. check if user is authenticated
     // 2. check if avatar file is provided
@@ -298,6 +298,11 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
 
     if (!avatarLocalPath) {
         throw new apiError("Avatar file is missing", 400);
+    }
+
+    // delete previous avatar if exists
+    if (req.user.avatar) {
+        await uploadOnCloudinary.deleteImage(req.user.avatar);
     }
 
     const avatar = await uploadOnCloudinary(avatarLocalPath);
@@ -319,7 +324,7 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
         .json(new apiResponse(200, user, "Avatar updated successfully"))
 })
 
-const updateUserCoverImage = asyncHandler(async (req, res) => {
+const updateUserCoverImage = asyncHandler(async (req, res) => { // Function to update user cover image
     // Steps to update user cover image
     // 1. check if user is authenticated
     // 2. check if cover image file is provided
@@ -356,6 +361,76 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
         .json(new apiResponse(200, user, "Cover image updated successfully"))
 })
 
+const getUserChannelProfile = asyncHandler(async (req, res) => { // Function to get user channel profile
+
+    // Steps to get user channel profile
+    // 1. get username from request params
+    // 2. validate username
+    // 3. find user by username
+    // 4. aggregate user data with subscriptions
+    // 5. return user channel profile data
+
+    const { username } = req.params // Extract username from request parameters (url eg `/channel/:username`)
+
+    if (!username?.trim()) { // Check if username is provided and not empty
+        throw new apiError("Username is missing", 400)
+    }
+
+    const channel = await User.aggregate([ // Use aggregation to fetch user channel profile data
+        {
+            $match: { // Match user by username
+                username: username?.toLowerCase()
+            },
+            $lookup: { // Join with subscriptions collection to get subscribers
+                from: "subscriptions", // Join with subscriptions collection
+                localField: "_id", // Match user ID in subscriptions
+                foreignField: "channel", // Match channel field in subscriptions
+                as: "subscribers"
+            },
+            $lookup: { // Join with subscriptions collection to get channels subscribed to
+                from: "subscriptions", // Join with subscriptions collection
+                localField: "_id", // Match user ID in subscriptions
+                foreignField: "subscriber", // Match subscriber field in subscriptions
+                as: "subscribedTo"
+            },
+            $addFields: { // Add fields to the output document
+                subscribersCount: { // Count the number of subscribers
+                    $size: "$subscribers"
+                },
+                channelsSubscribedToCount: { // Count the number of channels subscribed to
+                    $size: "$subscribedTo"
+                },
+                isSubscribed: { // Check if the current user is subscribed to the channel
+                    $cond: { // condition
+                        if: { $in: [req.user?._id, "subscribers.subscriber"] }, // Check if the current user ID is in the subscribers array
+                        then: true, // if true, user is subscribed
+                        else: false // if false, user is not subscribed
+                    }
+                }
+            }
+        }, {
+            $project: { // Project the fields to return in the response
+                fullname: 1,
+                username: 1,
+                subscribersCount: 1,
+                channelsSubscribedToCount: 1,
+                isSubscribed: 1,
+                avatar: 1,
+                coverImage: 1,
+                email: 1
+            }
+        }
+    ])
+
+    if (!channel?.length) { // Check if channel exists
+        throw new apiError("Channel does not exist", 404)
+    }
+
+    return res
+        .status(200)
+        .json(new apiResponse(200, channel[0], "Channel profile fetched successfully"))
+})
+
 export {
     registerUser,
     loginUser,
@@ -365,5 +440,6 @@ export {
     getCurrentUser,
     updateUserProfile,
     updateUserAvatar,
-    updateUserCoverImage
+    updateUserCoverImage,
+    getUserChannelProfile
 };

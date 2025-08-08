@@ -15,3 +15,27 @@ make it generalize
 
 
 Middleware is like, 'Ja rahe ho kahi?, toh jaate samay mujhse milte jaana'
+
+// Subscriber Model:
+
+we'll make documents for every new subscriber and channel, 
+suppose a user 'c' subscribes a channel 'code' the we'll create a document 
+where we'll store the subscribed channel(user) name/id and user's name/id, 
+so it'll be easy to determine the no. of subscribers a user has and no. of subscriptions a user has made.
+
+when we want to find a user's subscribers:
+we'll find the documents with the channel's(user) name/id
+
+when we want to find a channel's subscribers:
+we'll find the documents with the user's(channel) name/id
+
+we'll use aggregation pipelines for this.
+
+
+// Mongo DB aggregation pipelines:
+MongoDB Aggregation is a database process that allows us to perform complex data transformations and 
+computations on collections of documents or rows. It enables us to group, filter, 
+and manipulate data to produce summarized results.
+
+Each stage of the pipeline transforms the documents as they pass through it and 
+allows for operations like filtering, grouping, sorting, reshaping and performing calculations on the data.
