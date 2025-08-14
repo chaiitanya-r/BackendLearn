@@ -4,6 +4,7 @@ import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { apiResponse } from "../utils/apiResponse.js";
 import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 
 const generateAccessAndRefreshTokens = async (userId) => { // Function to generate access and refresh tokens for a user
     // This function takes a userId, finds the user in the database, and generates tokens
@@ -431,6 +432,58 @@ const getUserChannelProfile = asyncHandler(async (req, res) => { // Function to 
         .json(new apiResponse(200, channel[0], "Channel profile fetched successfully"))
 })
 
+const getWatchHistory = asyncHandler(async (req, res) => { // Function to get user's watch history
+    // Steps to get user's watch history
+    // 1. find user by ID
+    // 2. aggregate user data with watch history
+    // 3. return user watch history data
+
+    const user = await User.aggregate([ // Use aggregation to fetch user's watch history
+        {
+            $match: { // Match user by ID
+                _id: new mongoose.Types.ObjectId(req.user._id)
+            }
+        },
+        {
+            $lookup: { // Join with videos collection to get watch history
+                from: "videos",
+                localField: "watchHistory",
+                foreignField: "_id",
+                as: "watchHistory",
+                pipeline: [ // Pipeline to project fields and lookup owner details
+                    {
+                        $lookup: {
+                            from: "users",
+                            localField: "owner",
+                            foreignField: "_id",
+                            as: "owner",
+                            pipeline: [ // Pipeline to project owner details
+                                {
+                                    $project: {
+                                        username: 1,
+                                        fullname: 1,
+                                        avatar: 1
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        $addFields: { // Add fields to the output document
+                            owner: {
+                                $first: "$owner"
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    ])
+
+    return res.status(200)
+        .json(new apiResponse(200, user[0].watchHistory, "Watch History Fetched Successfully"))
+})
+
 export {
     registerUser,
     loginUser,
@@ -441,5 +494,6 @@ export {
     updateUserProfile,
     updateUserAvatar,
     updateUserCoverImage,
-    getUserChannelProfile
+    getUserChannelProfile,
+    getWatchHistory
 };
